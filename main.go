@@ -14,11 +14,33 @@ var (
 	stsDomain  = flag.String("domain", "", "domain for sts")
 	stsMode    = flag.String("stsMode", "testing", "STS mode to use. Options are 'testing' or 'enforce'")
 	stsMX      = flag.String("stsMX", "", "MX to use for STS. Comma separated list")
-	stsMaxAge  = flag.Int("stsMaxAge", 2419200, "STS max age in seconds")
+	stsMaxAge  = flag.String("stsMaxAge", "2419200", "STS max age in seconds")
 )
 
 func main() {
 	flag.Parse()
+
+	var domain = os.Getenv("DOMAIN")
+	var mode = os.Getenv("STS_MODE")
+	var mx = os.Getenv("STS_MX")
+	var maxAge = os.Getenv("STS_MAX_AGE")
+
+	if domain != "" {
+		*stsDomain = domain
+	}
+
+	if mode != "" {
+		*stsMode = mode
+	}
+
+	if mx != "" {
+		*stsMX = mx
+	}
+
+	if maxAge != "" {
+		// convert maxAge to int and then assign it to stsMaxAge
+		*stsMaxAge = maxAge
+	}
 
 	// if stsMX is not set, the find the mx record for the domain and set it
 	if *stsMX == "" {
@@ -85,7 +107,7 @@ func mtaSTSHandler(w http.ResponseWriter, r *http.Request) {
 		os.Exit(2)
 	}
 	// check if the sts max age is set
-	if *stsMaxAge == 0 {
+	if *stsMaxAge == "" {
 		log.Println("STS max age not set")
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprint(w, "STS max age not set")
@@ -104,7 +126,7 @@ func mtaSTSHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, `version: STSv1
 mode: %s
 mx: %s
-max_age: %d`, *stsMode, *stsMX, *stsMaxAge)
+max_age: %s`, *stsMode, *stsMX, *stsMaxAge)
 
 }
 
