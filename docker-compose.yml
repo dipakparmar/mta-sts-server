@@ -1,0 +1,10 @@
+version: '3'
+
+services:
+  app:
+    image: dipakparmar/mta-sts-server:latest
+    environment:
+      - DOMAIN=example.com
+    ports:
+      - "8080:8080"
+    
