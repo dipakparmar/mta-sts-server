@@ -4,42 +4,119 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"os"
 )
 
 var (
-	port = flag.String("port", "8080", "port to listen on")
+	serverPort = flag.String("port", "8080", "port to listen on")
+	stsDomain  = flag.String("domain", "", "domain for sts")
+	stsMode    = flag.String("stsMode", "testing", "STS mode to use. Options are 'testing' or 'enforce'")
+	stsMX      = flag.String("stsMX", "", "MX to use for STS. Comma separated list")
+	stsMaxAge  = flag.Int("stsMaxAge", 2419200, "STS max age in seconds")
 )
 
 func main() {
-	var defaultPort = "8080"
 	flag.Parse()
-	if port == nil {
-		port = &defaultPort
+
+	// if stsMX is not set, the find the mx record for the domain and set it
+	if *stsMX == "" {
+		mx, err := findMX(*stsDomain)
+		if err != nil {
+			log.Fatal(err)
+		}
+		// convert the mx as string without [] and remove the last dot if present
+		*stsMX = fmt.Sprintf("%s", mx)
+		*stsMX = (*stsMX)[1 : len(*stsMX)-1]
+		if (*stsMX)[len(*stsMX)-1:] == "." {
+			*stsMX = (*stsMX)[:len(*stsMX)-1]
+		}
+
 	}
 
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("%s : %s : %s\n", r.RemoteAddr, r.Host, r.UserAgent())
-		fmt.Fprintf(w, "Hello, %s!", r.URL.Path[1:])
-	})
-
-	http.HandleFunc("/.well-known/mta-sts.txt", mtaSTSHandler)
-
-	fmt.Fprintln(os.Stderr, http.ListenAndServe(":"+*port, nil))
+	// create a new serve mux and register the handlers
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", rootHandler)
+	mux.HandleFunc("/.well-known/mta-sts.txt", mtaSTSHandler)
+	// create a new server
+	s := &http.Server{
+		Addr:    ":" + *serverPort,
+		Handler: mux,
+	}
+	// start the server
+	log.Printf("Starting server on port %s", *serverPort)
+	log.Fatal(s.ListenAndServe())
 	os.Exit(2)
+}
+
+// fmt.Fprintln(os.Stderr, http.ListenAndServe(":"+*serverPort, nil))
+
+// func that handles the request and response for /
+func rootHandler(w http.ResponseWriter, r *http.Request) {
+	log.Printf("%s : %s : %s\n", r.RemoteAddr, r.Host, r.UserAgent())
+	// write the response as server is up and running
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprint(w, "Server is up and running for domain "+*stsDomain)
 }
 
 // func that handles the request and response for /.well-known/mta-sts.txt path
 func mtaSTSHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("%s : %s : %s\n", r.RemoteAddr, r.Host, r.UserAgent())
-	var mtaSTS = `version: STSv1
-mode: testing
-mx: mail.example.com
-max_age: 86400`
+	// check if the domain is set
+	if *stsDomain == "" {
+		log.Println("Domain not set")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, "Domain not set")
+		os.Exit(2)
+	}
+	// check if the sts mode is set
+	if *stsMode == "" {
+		log.Println("STS mode not set")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, "STS mode not set")
+		os.Exit(2)
+	}
+	// check if the sts mode is valid
+	if *stsMode != "testing" && *stsMode != "enforce" {
+		log.Println("STS mode not valid")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, "STS mode not valid")
+		os.Exit(2)
+	}
+	// check if the sts max age is set
+	if *stsMaxAge == 0 {
+		log.Println("STS max age not set")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, "STS max age not set")
+		os.Exit(2)
+	}
+	// check if the sts mx is set
+	if *stsMX == "" {
+		log.Println("STS mx not set")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, "STS mx not set")
+		os.Exit(2)
+	}
 
-	w.Header().Set("Content-Type", "text/plain")
-	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(mtaSTS)))
+	// write the response
 	w.WriteHeader(http.StatusOK)
-	fmt.Fprint(w, mtaSTS)
+	fmt.Fprintf(w, `version: STSv1
+mode: %s
+mx: %s
+max_age: %d`, *stsMode, *stsMX, *stsMaxAge)
+
+}
+
+// func that find the mx record for the domain
+func findMX(domain string) ([]string, error) {
+	mx, err := net.LookupMX(domain)
+	if err != nil {
+		return nil, err
+	}
+	var mxList []string
+	for _, m := range mx {
+		mxList = append(mxList, m.Host)
+	}
+	return mxList, nil
 }
