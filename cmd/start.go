@@ -19,10 +19,29 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
-package main
+package cmd
 
-import "go.pkg.dipak.io/mta-sts-server/cmd"
+import (
+	"github.com/spf13/cobra"
+	mta_sts "go.pkg.dipak.io/mta-sts-server/mta-sts"
+)
 
-func main() {
-	cmd.Execute()
+// startCmd represents the start command
+var startCmd = &cobra.Command{
+	Use:   "start",
+	Short: "start the server",
+	Long:  `start the mta-sts server.`,
+	Run: func(cmd *cobra.Command, args []string) {
+		mta_sts.Start(cmd.Flag("port").Value.String())
+	},
+}
+
+func init() {
+	rootCmd.AddCommand(startCmd)
+	startCmd.Flags().StringP("port", "p", "8080", "port to listen on")
+	startCmd.Flags().StringP("domain", "d", "example.com", "domain to serve")
+	startCmd.Flags().StringP("mode", "m", "testing", "mode to run in")
+	startCmd.Flags().Int32("max-age", 86400, "max-age to serve")
+	// array of strings for mx records
+	startCmd.Flags().StringArrayP("mx", "x", []string{}, "mx records to serve")
 }
