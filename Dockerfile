@@ -1,4 +1,5 @@
 # syntax=docker/dockerfile:1
+# @see https://snyk.io/blog/containerizing-go-applications-with-docker/
 
 ##
 ## Stage 1: Build the application
@@ -26,11 +27,14 @@ RUN CGO_ENABLED=0 GOOS=linux go build -a -o server .
 ##
 FROM alpine:3.17.0
 
+RUN addgroup -S app && adduser -S app -G app 
+# https://stackoverflow.com/questions/49955097/how-do-i-add-a-user-when-im-using-alpine-as-a-base-image
+
+USER app:app
+
 WORKDIR /app
 
 COPY --from=builder /app/server .
-
-ENV DOMAIN=example.com
 
 # Expose port 8080 to the outside world
 EXPOSE 8080
