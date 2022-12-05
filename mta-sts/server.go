@@ -36,6 +36,7 @@ func Start(Port string, Domain string, Mode string, MX []string, MaxAge string) 
 		Handler: mux,
 	}
 
+	PrintFiglet()
 	// start the server
 	log.Printf("Starting server on port %s", Port)
 	log.Fatal(server.ListenAndServe())
