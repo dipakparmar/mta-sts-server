@@ -2,6 +2,7 @@ version: '3'
 
 services:
   app:
+    build: .
     image: dipakparmar/mta-sts-server:latest
     environment:
       - DOMAIN=example.com
