@@ -224,3 +224,10 @@ func ReadInConfig() {
 	params.Verbose = viper.GetBool("verbose")
 }
 
+func PrintConfig() {
+	fmt.Println("Domain: " + params.Domain)
+	fmt.Println("Mode: " + params.Mode)
+	fmt.Println("MX: " + params.MX)
+	fmt.Println("Max Age: " + params.MaxAge)
+	fmt.Println("Verbose: " + strconv.FormatBool(params.Verbose))
+}
