@@ -5,7 +5,9 @@ services:
     build: .
     image: dipakparmar/mta-sts-server:latest
     environment:
-      - DOMAIN=example.com
+      - DOMAIN=google.com
+      - PORT=8080
+      - mode=production
     ports:
       - "8080:8080"
     

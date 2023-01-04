@@ -30,6 +30,7 @@ import (
 )
 
 var cfgFile string
+var defaultCfgFilePath string
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -61,21 +62,115 @@ func initConfig() {
 	if cfgFile != "" {
 		// Use config file from the flag.
 		viper.SetConfigFile(cfgFile)
+
 	} else {
 		// Find home directory.
 		home, err := os.UserHomeDir()
 		cobra.CheckErr(err)
 
-		// Search config in home directory with name ".mta-sts-server" (without extension).
-		viper.AddConfigPath(home)
+		defaultCfgFilePath = home + "/.config/mta-sts-server/config.yaml"
+
+		// Search config in home directory .config/mta-sts-server/config.yaml
+		viper.AddConfigPath(home + "/.config/mta-sts-server")
 		viper.SetConfigType("yaml")
-		viper.SetConfigName(".mta-sts-server")
+		viper.SetConfigName("config")
 	}
 
 	viper.AutomaticEnv() // read in environment variables that match
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
-		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
+		if viper.GetBool("verbose") {
+			fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
+		}
+
+		// validate config
+		validateConfig()
+
+		// override config with env var
+		overrideConfig()
+
+		// if verbose print config
+		if viper.GetBool("verbose") {
+			fmt.Println(viper.AllSettings())
+		}
+	} else {
+		// sdtout create config file
+		fmt.Fprintln(os.Stderr, "Creating config file at", defaultCfgFilePath)
+		createConfig()
 	}
+}
+
+func createConfig() {
+	home, err := os.UserHomeDir()
+	cobra.CheckErr(err)
+
+	// Search config in home directory .config/mta-sts-server/config.yaml
+	viper.AddConfigPath(home + "/.config/mta-sts-server")
+	viper.SetConfigType("yaml")
+	viper.SetConfigName("config")
+
+	// instead of the default config use from environment variables/flags
+	viper.BindPFlag("port", rootCmd.Flags().Lookup("port"))
+	viper.BindPFlag("domain", rootCmd.Flags().Lookup("domain"))
+	viper.BindPFlag("mode", rootCmd.Flags().Lookup("mode"))
+	viper.BindPFlag("max_age", rootCmd.Flags().Lookup("max_age"))
+	viper.BindPFlag("verbose", rootCmd.Flags().Lookup("verbose"))
+
+	validateConfig()
+
+	// write config
+	err = viper.SafeWriteConfig()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Error writing config file:", viper.ConfigFileUsed())
+	}
+}
+
+func validateConfig() {
+
+	var errors []string
+
+	// validate config
+	if viper.GetString("domain") == "" {
+		// append error to errors
+		errors = append(errors, "domain is required")
+	}
+
+	if viper.GetString("mode") == "" {
+		errors = append(errors, "mode is required")
+	}
+
+	if viper.GetInt("max_age") == 0 {
+		errors = append(errors, "max_age is required")
+	}
+
+	if len(errors) > 0 {
+		fmt.Fprintln(os.Stderr, "Error in config file:", viper.ConfigFileUsed())
+		fmt.Fprintln(os.Stderr, "Please fix the following errors:")
+		for _, err := range errors {
+			fmt.Fprintln(os.Stderr, err)
+		}
+		os.Exit(1)
+	}
+
+}
+
+// environment variables take precedence over config file values if set so override config file values with env vars
+func overrideConfig() {
+	// override config with env var
+	viper.AutomaticEnv()
+
+	// override config with flags
+	viper.BindPFlag("port", rootCmd.Flags().Lookup("port"))
+	viper.BindPFlag("domain", rootCmd.Flags().Lookup("domain"))
+	viper.BindPFlag("mode", rootCmd.Flags().Lookup("mode"))
+	viper.BindPFlag("max_age", rootCmd.Flags().Lookup("max_age"))
+	viper.BindPFlag("verbose", rootCmd.Flags().Lookup("verbose"))
+
+	// write config
+	err := viper.WriteConfig()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Error writing config file:", viper.ConfigFileUsed())
+	}
+
 }

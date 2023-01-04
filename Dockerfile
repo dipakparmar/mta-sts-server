@@ -27,17 +27,21 @@ RUN CGO_ENABLED=0 GOOS=linux go build -a -o server .
 ##
 FROM alpine:3.17.0
 
+RUN apk add bind-tools
+
 RUN addgroup -S app && adduser -S app -G app 
 # https://stackoverflow.com/questions/49955097/how-do-i-add-a-user-when-im-using-alpine-as-a-base-image
-
-USER app:app
 
 WORKDIR /app
 
 COPY --from=builder /app/server .
 
+COPY ./entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+USER app:app
 # Expose port 8080 to the outside world
 EXPOSE 8080
 
-ENTRYPOINT [ "/app/server", "start" ]
+ENTRYPOINT ["/entrypoint.sh"]
 
