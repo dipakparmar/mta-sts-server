@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/mbndr/figlet4go"
 	"github.com/spf13/viper"
@@ -39,12 +40,19 @@ func FindMX(domain string) ([]string, error) {
 // mode can be "testing" or "enforce"
 // mx is the mx records for the domain - can be a list of mx records
 // max_age is the max age of the record in seconds
-func MtaSTSRecord(mode string, mx []string, max_age string) string {
-	var mxList string
-	for _, m := range mx {
-		mxList = mxList + "\nmx: " + m
+func MtaSTSRecord(mode string, mx string, max_age string) string {
+	var mxList []string
+	var mxs string
+	// mx is space sperated list of mx records and its in string format so convert it to list if it has more than one mx record
+	if len(mx) > 1 {
+		mxList = strings.Split(mx, " ")
+	} else {
+		mxList = append(mxList, mx)
 	}
-	return fmt.Sprintf("version: STSv1\rmode: %s %s\rmax_age: %s", mode, mxList, max_age)
+	for _, m := range mxList {
+		mxs = mxs + "\nmx: " + m
+	}
+	return fmt.Sprintf("version: STSv1\rmode: %s %s\rmax_age: %s", mode, mxs, max_age)
 }
 
 // func that creates log for the request
