@@ -12,6 +12,15 @@ import (
 	"github.com/spf13/viper"
 )
 
+type Config struct {
+	Domain  string
+	MX      string
+	Mode    string
+	MaxAge  string
+	Port    string
+	Verbose bool
+}
+
 // func that find the mx record for the domain
 func FindMX(domain string) ([]string, error) {
 	mx, err := net.LookupMX(domain)
@@ -174,14 +183,6 @@ func IsValidConfig(config Config) error {
 	}
 }
 
-type Config struct {
-	Domain  string
-	MX      string
-	Mode    string
-	MaxAge  string
-	Verbose bool
-}
-
 // func that generate figlet ascii art for the program name and version - MTA-STS-Server v1.0.0
 func PrintFiglet() {
 	ascii := figlet4go.NewAsciiRender()
@@ -221,6 +222,7 @@ func ReadInConfig() {
 	params.Mode = viper.GetString("mode")
 	params.MX = viper.GetString("mx")
 	params.MaxAge = viper.GetString("max_age")
+	params.Port = viper.GetString("port")
 	params.Verbose = viper.GetBool("verbose")
 }
 
@@ -229,5 +231,6 @@ func PrintConfig() {
 	fmt.Println("Mode: " + params.Mode)
 	fmt.Println("MX: " + params.MX)
 	fmt.Println("Max Age: " + params.MaxAge)
+	fmt.Println("Port: " + params.Port)
 	fmt.Println("Verbose: " + strconv.FormatBool(params.Verbose))
 }
