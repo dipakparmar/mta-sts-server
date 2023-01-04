@@ -5,9 +5,11 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"os"
 	"strconv"
 
 	"github.com/mbndr/figlet4go"
+	"github.com/spf13/viper"
 )
 
 // func that find the mx record for the domain
@@ -201,3 +203,24 @@ func PrintFiglet() {
 	fmt.Println(renderStr)
 
 }
+
+func ReadInConfig() {
+
+	// Find home directory.
+	home, err := os.UserHomeDir()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defaultCfgFilePath = home + "/.config/mta-sts-server/config.yaml"
+	// Read the config file from $HOME/.config/mta-sts-server/config.yaml
+	viper.SetConfigFile(defaultCfgFilePath)
+	viper.ReadInConfig()
+
+	// store the config in the context for later use
+	params.Domain = viper.GetString("domain")
+	params.Mode = viper.GetString("mode")
+	params.MX = viper.GetString("mx")
+	params.MaxAge = viper.GetString("max_age")
+	params.Verbose = viper.GetBool("verbose")
+}
+
