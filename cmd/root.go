@@ -76,6 +76,28 @@ func initConfig() {
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
-		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
+func createConfig() {
+	home, err := os.UserHomeDir()
+	cobra.CheckErr(err)
+
+	// Search config in home directory .config/mta-sts-server/config.yaml
+	viper.AddConfigPath(home + "/.config/mta-sts-server")
+	viper.SetConfigType("yaml")
+	viper.SetConfigName("config")
+
+	// instead of the default config use from environment variables/flags
+	viper.BindPFlag("port", rootCmd.Flags().Lookup("port"))
+	viper.BindPFlag("domain", rootCmd.Flags().Lookup("domain"))
+	viper.BindPFlag("mode", rootCmd.Flags().Lookup("mode"))
+	viper.BindPFlag("max_age", rootCmd.Flags().Lookup("max_age"))
+	viper.BindPFlag("verbose", rootCmd.Flags().Lookup("verbose"))
+
+	validateConfig()
+
+	// write config
+	err = viper.SafeWriteConfig()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Error writing config file:", viper.ConfigFileUsed())
 	}
+}
 }
