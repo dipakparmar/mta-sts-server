@@ -100,4 +100,34 @@ func createConfig() {
 		fmt.Fprintln(os.Stderr, "Error writing config file:", viper.ConfigFileUsed())
 	}
 }
+
+func validateConfig() {
+
+	var errors []string
+
+	// validate config
+	if viper.GetString("domain") == "" {
+		// append error to errors
+		errors = append(errors, "domain is required")
+	}
+
+	if viper.GetString("mode") == "" {
+		errors = append(errors, "mode is required")
+	}
+
+	if viper.GetInt("max_age") == 0 {
+		errors = append(errors, "max_age is required")
+	}
+
+	if len(errors) > 0 {
+		fmt.Fprintln(os.Stderr, "Error in config file:", viper.ConfigFileUsed())
+		fmt.Fprintln(os.Stderr, "Please fix the following errors:")
+		for _, err := range errors {
+			fmt.Fprintln(os.Stderr, err)
+		}
+		os.Exit(1)
+	}
+
+}
+
 }
