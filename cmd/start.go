@@ -32,7 +32,7 @@ var startCmd = &cobra.Command{
 	Short: "start the server",
 	Long:  `start the mta-sts server.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		mta_sts.Start(cmd.Flag("port").Value.String())
+		mta_sts.Start()
 	},
 }
 
@@ -43,5 +43,5 @@ func init() {
 	startCmd.Flags().StringP("mode", "m", "testing", "mode to run in")
 	startCmd.Flags().Int32("max_age", 86400, "max_age to serve")
 	// array of strings for mx records
-	startCmd.Flags().StringArrayP("mx", "x", []string{}, "mx records to serve")
+	startCmd.Flags().StringP("mx", "x", "", "mx records to serve")
 }
