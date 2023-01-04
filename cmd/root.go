@@ -130,4 +130,22 @@ func validateConfig() {
 
 }
 
+// environment variables take precedence over config file values if set so override config file values with env vars
+func overrideConfig() {
+	// override config with env var
+	viper.AutomaticEnv()
+
+	// override config with flags
+	viper.BindPFlag("port", rootCmd.Flags().Lookup("port"))
+	viper.BindPFlag("domain", rootCmd.Flags().Lookup("domain"))
+	viper.BindPFlag("mode", rootCmd.Flags().Lookup("mode"))
+	viper.BindPFlag("max_age", rootCmd.Flags().Lookup("max_age"))
+	viper.BindPFlag("verbose", rootCmd.Flags().Lookup("verbose"))
+
+	// write config
+	err := viper.WriteConfig()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Error writing config file:", viper.ConfigFileUsed())
+	}
+
 }
